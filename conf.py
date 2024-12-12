@@ -1,4 +1,11 @@
 import sys
+import os
+
+# get release from environment variable
+version = os.environ.get("VERSION", "")
+if not version:
+    print("Error: VERSION environment variable not set.")
+    sys.exit(1)
 
 sys.path.insert(0, "release-code")
 
@@ -13,7 +20,7 @@ sys.path.insert(0, "release-code")
 project = "deeplay"
 copyright = "2024, Benjamin Midtvedt, Jesus Pineda, Henrik Klein Moberg, Harshith Bachimanchi, Carlo Manzo, Giovanni Volpe"
 author = "Benjamin Midtvedt, Jesus Pineda, Henrik Klein Moberg, Harshith Bachimanchi, Carlo Manzo, Giovanni Volpe"
-release = "0.1.1"
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -34,7 +41,7 @@ html_static_path = ["static"]
 html_theme_options = {
     "switcher": {
         "json_url": "https://benjaminmidtvedt.github.io/deeplay/latest/_static/switcher.json",
-        "version_match": "latest",
+        "version_match": version,
     },
     "navbar_end": [
         "version-switcher",
