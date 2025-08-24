@@ -32,19 +32,27 @@ class VariationalAutoEncoder(Application):
         optimizer=None,
         **kwargs,
     ):
-        red_size = [int(dim / (2 ** len(channels))) for dim in input_size]
+        # red_size = [int(dim / (2 ** len(channels))) for dim in input_size]
         self.encoder = encoder or self._get_default_encoder(channels)
-        self.fc_mu = nn.Linear(
-            channels[-1] * red_size[0] * red_size[1],
+
+        encdoder = self.encoder.create()
+        dummy_input = torch.randn(1, 3, 64, 64)
+        dummy_output = encdoder(dummy_input)
+        red_size = dummy_output.shape[1:]
+
+        output_channels = self.encoder.output_channels
+
+        self.fc_mu = nn.LazyLinear(
+            output_channels * red_size[0] * red_size[1],
             latent_dim,
         )
-        self.fc_var = nn.Linear(
-            channels[-1] * red_size[0] * red_size[1],
+        self.fc_var = nn.LazyLinear(
+            output_channels * red_size[0] * red_size[1],
             latent_dim,
         )
-        self.fc_dec = nn.Linear(
+        self.fc_dec = nn.LazyLinear(
             latent_dim,
-            channels[-1] * red_size[0] * red_size[1],
+            output_channels * red_size[0] * red_size[1],
         )
         self.decoder = decoder or self._get_default_decoder(channels[::-1], red_size)
         self.reconstruction_loss = reconstruction_loss or nn.BCELoss(reduction="sum")

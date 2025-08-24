@@ -1,6 +1,15 @@
 from __future__ import annotations
 from os import remove
-from typing import List, Optional, Literal, Any, Sequence, Type, overload, Union
+from typing import (
+    List,
+    Optional,
+    Literal,
+    Any,
+    Sequence,
+    Type,
+    overload,
+    Union,
+)
 import warnings
 
 from deeplay import (
@@ -88,7 +97,9 @@ class ConvolutionalEncoder2d(ConvolutionalNeuralNetwork):
         in_channels: Optional[int],
         hidden_channels: Sequence[int],
         out_channels: int,
-        out_activation: Optional[Union[Type[nn.Module], nn.Module, None]] = None,
+        out_activation: Optional[
+            Union[Type[nn.Module], nn.Module, None]
+        ] = None,
         pool: Optional[Union[Type[nn.Module], nn.Module, None]] = Layer(
             nn.MaxPool2d, kernel_size=2, stride=2
         ),
@@ -241,7 +252,9 @@ class ConvolutionalDecoder2d(ConvolutionalNeuralNetwork):
         in_channels: Optional[int],
         hidden_channels: Sequence[int],
         out_channels: int,
-        out_activation: Optional[Union[Type[nn.Module], nn.Module, None]] = None,
+        out_activation: Optional[
+            Union[Type[nn.Module], nn.Module, None]
+        ] = None,
         preprocess: Union[Type[nn.Module], nn.Module] = None,
     ):
         super().__init__(
@@ -254,7 +267,9 @@ class ConvolutionalDecoder2d(ConvolutionalNeuralNetwork):
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.out_channels = out_channels
-        self.preprocess = preprocess if preprocess is not None else Layer(nn.Identity)
+        self.preprocess = (
+            preprocess if preprocess is not None else Layer(nn.Identity)
+        )
 
         for block in self.blocks[:-1]:
             block.upsampled()
@@ -267,7 +282,9 @@ class ConvolutionalDecoder2d(ConvolutionalNeuralNetwork):
 
     def upsampled(
         self,
-        upsample: Layer = Layer(nn.ConvTranspose2d, kernel_size=2, stride=2, padding=0),
+        upsample: Layer = Layer(
+            nn.ConvTranspose2d, kernel_size=2, stride=2, padding=0
+        ),
         apply_to_last_layer: bool = False,
         mode="append",
         after=None,
@@ -338,7 +355,9 @@ class ConvolutionalEncoderDecoder2d(DeeplayModule):
         """Return the blocks of the encoder and decoder. Equivalent to `.encoder.blocks + .bottleneck.blocks + .decoder.blocks`."""
         if isinstance(self.bottleneck, Layer):
             return self.encoder.blocks + self.decoder.blocks
-        return self.encoder.blocks + self.bottleneck.blocks + self.decoder.blocks
+        return (
+            self.encoder.blocks + self.bottleneck.blocks + self.decoder.blocks
+        )
 
     @property
     def normalization(self) -> LayerList[Layer]:
@@ -372,7 +391,9 @@ class ConvolutionalEncoderDecoder2d(DeeplayModule):
         self.in_channels = in_channels
         self.encoder_channels = encoder_channels
 
-        self.hidden_channels = list(self.encoder_channels) + list(self.decoder_channels)
+        self.hidden_channels = list(self.encoder_channels) + list(
+            self.decoder_channels
+        )
         self.out_channels = out_channels
 
         self.encoder = ConvolutionalEncoder2d(
@@ -399,7 +420,9 @@ class ConvolutionalEncoderDecoder2d(DeeplayModule):
             self.decoder_channels,
             self.out_channels,
             out_activation=(
-                Layer(nn.Identity) if out_activation is None else out_activation
+                Layer(nn.Identity)
+                if out_activation is None
+                else out_activation
             ),
         )
 
@@ -483,3 +506,5 @@ class UNet2d(ConvolutionalEncoderDecoder2d):
         skip: Optional[Type[nn.Module]] = None,
         **kwargs: Any,
     ) -> None: ...
+
+    configure = ConvolutionalEncoderDecoder2d.configure
