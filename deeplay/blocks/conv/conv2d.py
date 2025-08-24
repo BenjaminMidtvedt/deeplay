@@ -32,7 +32,6 @@ class Conv2dBlock(BaseBlock):
         padding=0,
         **kwargs,
     ):
-
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -79,7 +78,6 @@ class Conv2dBlock(BaseBlock):
         return self
 
     def _configure_normalization(self):
-
         idx = self.order.index("normalization")
         # if layer or blocks before normalization
         if any(name in self.order[:idx] for name in ["layer", "blocks"]):
@@ -230,19 +228,19 @@ def residual(
     if "|" not in order:
         order += "|"
     # only accept the characters 'l', 'a', 'n', 'd' and '|'
-    assert all(
-        c in "land|" for c in order
-    ), f"The residual order shorthand must only contain the characters 'l', 'a', 'n', 'd' and '|'. Received: {order}"
+    assert all(c in "land|" for c in order), (
+        f"The residual order shorthand must only contain the characters 'l', 'a', 'n', 'd' and '|'. Received: {order}"
+    )
 
     after_skip_order = order[order.index("|") + 1 :]
-    assert all(
-        c in "and" for c in after_skip_order
-    ), f"The residual order shorthand must only contain the characters 'a', 'n', 'd' after the skip connection. Received: {order}"
+    assert all(c in "and" for c in after_skip_order), (
+        f"The residual order shorthand must only contain the characters 'a', 'n', 'd' after the skip connection. Received: {order}"
+    )
 
     letter_count_map = {c: after_skip_order.count(c) for c in "lan"}
-    assert all(
-        count <= 1 for count in letter_count_map.values()
-    ), f"The residual order shorthand must contain at most one of each of the characters 'l', 'a', 'n' after the skip connection. Received: {order}"
+    assert all(count <= 1 for count in letter_count_map.values()), (
+        f"The residual order shorthand must contain at most one of each of the characters 'l', 'a', 'n' after the skip connection. Received: {order}"
+    )
 
     block_orders = []
     _order = []

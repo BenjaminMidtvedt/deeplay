@@ -32,14 +32,19 @@ from deeplay import DeeplayModule, Optimizer
 from deeplay.callbacks import RichProgressBar, LogHistory
 import dill
 
-logging.getLogger("lightning.pytorch.utilities.rank_zero").setLevel(logging.WARNING)
-logging.getLogger("lightning.pytorch.accelerators.cuda").setLevel(logging.WARNING)
+from deeplay.callbacks.progress import TQDMProgressBar
+
+logging.getLogger("lightning.pytorch.utilities.rank_zero").setLevel(
+    logging.WARNING
+)
+logging.getLogger("lightning.pytorch.accelerators.cuda").setLevel(
+    logging.WARNING
+)
 
 T = TypeVar("T")
 
 
 class Application(DeeplayModule, L.LightningModule):
-
     def __init__(
         self,
         loss: Optional[Union[nn.Module, Callable[..., torch.Tensor]]] = None,
@@ -116,18 +121,23 @@ class Application(DeeplayModule, L.LightningModule):
 
         val_batch_size = val_batch_size or batch_size
         val_steps_per_epoch = val_steps_per_epoch or 10
-        train_data = self.create_data(train_data, batch_size, steps_per_epoch, replace)
+        train_data = self.create_data(
+            train_data, batch_size, steps_per_epoch, replace
+        )
         val_data = (
-            self.create_data(val_data, val_batch_size, val_steps_per_epoch, False)
+            self.create_data(
+                val_data, val_batch_size, val_steps_per_epoch, False
+            )
             if val_data
             else None
         )
 
         history = LogHistory()
-        progressbar = RichProgressBar()
 
-        callbacks = callbacks + [history, progressbar]
-        trainer = dl.Trainer(max_epochs=max_epochs, callbacks=callbacks, **kwargs)
+        callbacks = callbacks + [history]
+        trainer = dl.Trainer(
+            max_epochs=max_epochs, callbacks=callbacks, **kwargs
+        )
 
         train_dataloader = torch.utils.data.DataLoader(
             train_data, batch_size=batch_size, shuffle=True
@@ -226,7 +236,9 @@ class Application(DeeplayModule, L.LightningModule):
         args = [self._maybe_to_channel_first(arg) for arg in args]
         return super().__call__(*args, **kwargs)
 
-    def compute_loss(self, y_hat, y) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+    def compute_loss(
+        self, y_hat, y
+    ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         if self.loss:
             return self.loss(y_hat, y)
         else:
@@ -234,8 +246,9 @@ class Application(DeeplayModule, L.LightningModule):
 
     def configure_optimizers(self):
         try:
-
-            return self.create_optimizer_with_params(self.optimizer, self.parameters())
+            return self.create_optimizer_with_params(
+                self.optimizer, self.parameters()
+            )
 
         except AttributeError as e:
             raise AttributeError(
@@ -243,9 +256,9 @@ class Application(DeeplayModule, L.LightningModule):
             ) from e
 
     def training_step(self, batch, batch_idx):
-        x, y = self.train_preprocess(batch)
+        x, y, *rest = self.train_preprocess(batch)
         y_hat = self(x)
-        loss = self.compute_loss(y_hat, y)
+        loss = self.compute_loss(y_hat, y, *rest)
         if not isinstance(loss, dict):
             loss = {"loss": loss}
 
@@ -260,15 +273,21 @@ class Application(DeeplayModule, L.LightningModule):
             )
 
         self.log_metrics(
-            "train", y_hat, y, on_step=True, on_epoch=True, prog_bar=True, logger=True
+            "train",
+            y_hat,
+            y,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
         )
 
         return sum(loss.values())
 
     def validation_step(self, batch, batch_idx):
-        x, y = self.val_preprocess(batch)
+        x, y, *rest = self.val_preprocess(batch)
         y_hat = self(x)
-        loss = self.compute_loss(y_hat, y)
+        loss = self.compute_loss(y_hat, y, *rest)
         if not isinstance(loss, dict):
             loss = {"loss": loss}
 
@@ -293,9 +312,9 @@ class Application(DeeplayModule, L.LightningModule):
         return sum(loss.values())
 
     def test_step(self, batch, batch_idx):
-        x, y = self.test_preprocess(batch)
+        x, y, *rest = self.test_preprocess(batch)
         y_hat = self(x)
-        loss = self.compute_loss(y_hat, y)
+        loss = self.compute_loss(y_hat, y, *rest)
         if not isinstance(loss, dict):
             loss = {"loss": loss}
 
@@ -341,7 +360,9 @@ class Application(DeeplayModule, L.LightningModule):
                 **logger_kwargs,
             )
 
-    def metrics_preprocess(self, y_hat, y) -> Tuple[torch.Tensor, torch.Tensor]:
+    def metrics_preprocess(
+        self, y_hat, y
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return y_hat, y
 
     @L.LightningModule.trainer.setter
@@ -356,7 +377,10 @@ class Application(DeeplayModule, L.LightningModule):
             if module is self:
                 continue
             try:
-                if hasattr(module, "trainer") and module.trainer is not trainer:
+                if (
+                    hasattr(module, "trainer")
+                    and module.trainer is not trainer
+                ):
                     module.trainer = trainer
             except RuntimeError:
                 # hasattr can raise RuntimeError if the module is not attached to a trainer
@@ -371,11 +395,11 @@ class Application(DeeplayModule, L.LightningModule):
         ]
 
     def train_preprocess(self, batch):
-        x, y = batch
+        x, y, *rest = batch
         x = self._maybe_to_channel_first(x)
         y = self._maybe_to_channel_first(y)
 
-        return x, y
+        return x, y, *rest
 
     val_preprocess = train_preprocess
     test_preprocess = train_preprocess
@@ -413,7 +437,12 @@ class Application(DeeplayModule, L.LightningModule):
 
         if isinstance(data, np.ndarray):
             data = torch.from_numpy(data)
-            if data.dtype in [torch.float16, torch.float, torch.float32, torch.float64]:
+            if data.dtype in [
+                torch.float16,
+                torch.float,
+                torch.float32,
+                torch.float64,
+            ]:
                 data = data.to(self.dtype)
             return self._maybe_to_channel_first(data)
 
@@ -428,7 +457,9 @@ class Application(DeeplayModule, L.LightningModule):
             return torch.utils.data.TensorDataset(*datas)
 
         # check if deeptrack object
-        if hasattr(data, "__module__") and data.__module__.startswith("deeptrack"):
+        if hasattr(data, "__module__") and data.__module__.startswith(
+            "deeptrack"
+        ):
             import deeptrack as dt
 
             if isinstance(data, dt.Feature):
@@ -442,7 +473,6 @@ class Application(DeeplayModule, L.LightningModule):
 
     @staticmethod
     def _maybe_to_channel_first(x, other=None):
-
         if not isinstance(x, np.ndarray):
             return x
 
@@ -462,9 +492,14 @@ class Application(DeeplayModule, L.LightningModule):
             return optimizer
 
     def _apply_batch_transfer_handler(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
+        self,
+        batch: Any,
+        device: Optional[torch.device] = None,
+        dataloader_idx: int = 0,
     ) -> Any:
-        batch = super()._apply_batch_transfer_handler(batch, device, dataloader_idx)
+        batch = super()._apply_batch_transfer_handler(
+            batch, device, dataloader_idx
+        )
         return self._configure_batch(batch)
 
     def _configure_batch(self, batch: Any) -> Any:
@@ -499,7 +534,9 @@ class Application(DeeplayModule, L.LightningModule):
         )
 
     def log(self, name, value, **kwargs):
-        if (not "batch_size" in kwargs) and hasattr(self, "_current_batch_size"):
+        if (not "batch_size" in kwargs) and hasattr(
+            self, "_current_batch_size"
+        ):
             kwargs.update({"batch_size": self._current_batch_size})
 
         super().log(name, value, **kwargs)
@@ -509,7 +546,9 @@ class Application(DeeplayModule, L.LightningModule):
             try:
                 self._store_hparams(*args, **kwargs)
             except PicklingError:
-                warn("Could not store hparams, checkpointing might not be available.")
+                warn(
+                    "Could not store hparams, checkpointing might not be available."
+                )
 
         return super().build(*args, **kwargs)
 
