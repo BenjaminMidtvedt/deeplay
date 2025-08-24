@@ -40,19 +40,19 @@ class VariationalAutoEncoder(Application):
         dummy_output = encdoder(dummy_input)
         red_size = dummy_output.shape[1:]
 
-        output_channels = self.encoder.output_channels
+        n_features = torch.prod(torch.tensor(red_size))
 
-        self.fc_mu = nn.LazyLinear(
-            output_channels * red_size[0] * red_size[1],
+        self.fc_mu = nn.Linear(
+            n_features,
             latent_dim,
         )
-        self.fc_var = nn.LazyLinear(
-            output_channels * red_size[0] * red_size[1],
+        self.fc_var = nn.Linear(
+            n_features,
             latent_dim,
         )
-        self.fc_dec = nn.LazyLinear(
+        self.fc_dec = nn.Linear(
             latent_dim,
-            output_channels * red_size[0] * red_size[1],
+            n_features,
         )
         self.decoder = decoder or self._get_default_decoder(channels[::-1], red_size)
         self.reconstruction_loss = reconstruction_loss or nn.BCELoss(reduction="sum")
