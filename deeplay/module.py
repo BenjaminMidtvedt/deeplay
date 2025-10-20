@@ -444,7 +444,7 @@ class DeeplayModule(nn.Module, metaclass=ExtendedConstructorMeta):
     _args: tuple
     _kwargs: dict
     _actual_init_args: dict
-    _has_built: bool
+    _has_built: bool = False
     _setattr_recording: Set[str]
     _tag: Tuple[str, ...]
     _config_tape: list
