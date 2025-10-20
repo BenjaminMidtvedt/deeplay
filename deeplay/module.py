@@ -1292,7 +1292,10 @@ class DeeplayModule(nn.Module, metaclass=ExtendedConstructorMeta):
         receiver.set_root_module(self.root_module)
         return not is_empty
 
-    def __setattr__(self, name, value):
+    def __setattr__(self: Self, name, value):
+        if self._has_built:
+            return object.__setattr__(self, name, value)
+
         if name == "_user_config" and hasattr(self, "_user_config"):
             if not isinstance(value, Config):
                 raise ValueError("User configuration must be a Config instance.")
